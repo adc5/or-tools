@@ -1,43 +1,16 @@
-INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR})
-FIND_PACKAGE(gflags ${gflags_VERSION})
-IF(BUILD_DEPS)
-    SET(gflags_FOUND False)
-ENDIF()
-IF(NOT gflags_FOUND)
-    MESSAGE(STATUS "Did not find system gflags or forced build. Building as an external project")
-    INCLUDE(cmake/external/gflags.cmake)
-ENDIF()
-INCLUDE_DIRECTORIES(${gflags_INCLUDE_DIRS})
+include(utils)
+set_version(VERSION)
+project(ortools LANGUAGES CXX VERSION ${VERSION})
 
-FIND_PACKAGE(glog ${glog_VERSION})
-IF(BUILD_DEPS)
-    SET(glog_FOUND False)
-ENDIF()
-IF(NOT glog_FOUND)
-    MESSAGE(STATUS "Did not find system glog. Building as an external project.")
-    INCLUDE(cmake/external/glog.cmake)
-ENDIF()
-INCLUDE_DIRECTORIES(${glog_INCLUDE_DIRS})
+find_package(Threads REQUIRED)
 
-FIND_PACKAGE(Cbc ${Cbc_VERSION})
-IF(BUILD_DEPS)
-    SET(Cbc_FOUND False)
-ENDIF()
-IF(NOT Cbc_FOUND)
-    IF(NOT MSVC)
-        MESSAGE(STATUS "Did not find system coin-cbc. Building as an external project.")
-        INCLUDE(cmake/external/cbc.cmake)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CLP -DUSE_CBC")
-        INCLUDE_DIRECTORIES(${Cbc_INCLUDE_DIRS})
-    ENDIF()
-ELSE()
-    INCLUDE_DIRECTORIES(${Cbc_INCLUDE_DIRS})
-    IF(MSVC)
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DUSE_CLP /DUSE_CBC")
-    ELSE()
-        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CLP -DUSE_CBC")
-    ENDIF()
-ENDIF()
+check_target(Protobuf)
+check_target(gflags)
+check_target(glog)
+check_target(Cbc)
+
+# Build or-tools-cpp
+include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 FILE(GLOB_RECURSE proto_files RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "ortools/*.proto")
 PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${proto_files})
@@ -58,10 +31,11 @@ SET_TARGET_PROPERTIES(${PROJECT_NAME}Proto PROPERTIES POSITION_INDEPENDENT_CODE 
 
 SET(SUBTARGETS "")
 
-FOREACH(SUBPROJECT base util lp_data glop graph algorithms sat bop linear_solver constraint_solver)
-    ADD_SUBDIRECTORY(ortools/${SUBPROJECT})
-    LIST(APPEND SUBTARGETS "$<TARGET_OBJECTS:${PROJECT_NAME}_${SUBPROJECT}>")
-ENDFOREACH()
+include_directories(${PROJECT_SOURCE_DIR})
+foreach(SUBPROJECT base port util data lp_data glop graph algorithms sat bop linear_solver constraint_solver)
+    add_subdirectory(ortools/${SUBPROJECT})
+    list(APPEND SUBTARGETS "$<TARGET_OBJECTS:${PROJECT_NAME}_${SUBPROJECT}>")
+endforeach()
 
 LIST(APPEND SUBTARGETS "$<TARGET_OBJECTS:${PROJECT_NAME}Proto>")
 
@@ -76,6 +50,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
 ADD_DEPENDENCIES(${PROJECT_NAME} ${PROJECT_NAME}Proto)
 ADD_SUBDIRECTORY(examples/cpp)
 
+include(GenerateExportHeader)
 GENERATE_EXPORT_HEADER(${PROJECT_NAME})
 SET_PROPERTY(TARGET ${PROJECT_NAME} PROPERTY VERSION ${PROJECT_VERSION})
 SET_PROPERTY(TARGET ${PROJECT_NAME} PROPERTY SOVERSION ${PROJECT_VERSION_MAJOR})
@@ -98,13 +73,14 @@ INSTALL(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/ortools
     FILES_MATCHING PATTERN "*.pb.h"
     PATTERN CMakeFiles EXCLUDE)
 
+include(CMakePackageConfigHelpers)
 WRITE_BASIC_PACKAGE_VERSION_FILE("${CMAKE_CURRENT_BINARY_DIR}/ortools/${PROJECT_NAME}ConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion)
 EXPORT(EXPORT ${PROJECT_NAME}Targets
     FILE "${CMAKE_CURRENT_BINARY_DIR}/ortools/${PROJECT_NAME}Targets.cmake"
     NAMESPACE ${PROJECT_NAME}::)
-CONFIGURE_FILE(cmake/${PROJECT_NAME}Config.cmake.in
+CONFIGURE_FILE(cmake/ortoolsConfig.cmake.in
     "${CMAKE_CURRENT_BINARY_DIR}/ortools/${PROJECT_NAME}Config.cmake"
     @ONLY)
 
