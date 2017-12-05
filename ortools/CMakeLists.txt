@@ -32,23 +32,28 @@ check_target(Cbc)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_subdirectory(base)
-add_subdirectory(util)
-add_subdirectory(lp_data)
-add_subdirectory(glop)
-add_subdirectory(graph)
-add_subdirectory(algorithms)
-add_subdirectory(sat)
-add_subdirectory(bop)
-add_subdirectory(linear_solver)
-add_subdirectory(constraint_solver)
-
 add_library(${PROJECT_NAME} "")
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_STANDARD 11)
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_EXTENSIONS OFF)
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}::base)
+
+foreach(SUBPROJECT
+		base
+		port
+		util
+		data
+		lp_data
+		glop
+		graph
+		algorithms
+		sat
+		bop
+		linear_solver
+		constraint_solver)
+    add_subdirectory(ortools/${SUBPROJECT})
+		target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_${SUBPROJECT})
+endforeach()
 
 if(ORTOOLS_BUILD_TESTS)
   enable_testing()
