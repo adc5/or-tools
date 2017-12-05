@@ -10,7 +10,7 @@ include(CMakeDependentOption)
 
 option(BUILD_CXX "Build C++ library" ON)
 CMAKE_DEPENDENT_OPTION(BUILD_PYTHON "Build Python Library" ON "BUILD_CXX" OFF)
-set(DOWNLOAD_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/dependencies/sources" CACHE PATH "Location where external projects will be downloaded.")
+set(DOWNLOAD_LOCATION "${CMAKE_CURRENT_BINARY_DIR}/download" CACHE PATH "Location where external projects will be downloaded.")
 mark_as_advanced(DOWNLOAD_LOCATION)
 option(BUILD_DEPS "Force re-build of all dependencies" OFF)
 
