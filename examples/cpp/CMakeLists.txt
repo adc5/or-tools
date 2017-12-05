@@ -1,20 +1,25 @@
-ADD_LIBRARY(${PROJECT_NAME}examples SHARED
+if (NOT BUILD_CXX)
+  return()
+endif()
+
+include(GNUInstallDirs)
+
+add_library(${PROJECT_NAME}_examples SHARED
         cvrptw_lib.cc
         parse_dimacs_assignment.cc
         fap_model_printer.cc
         fap_parser.cc
         fap_utilities.cc)
-TARGET_LINK_LIBRARIES(${PROJECT_NAME}examples ${PROJECT_NAME})
+target_link_libraries(${PROJECT_NAME}_examples ${PROJECT_NAME})
+add_dependencies(${PROJECT_NAME}_examples ${PROJECT_NAME}_proto)
 
-INSTALL(TARGETS ${PROJECT_NAME}examples
+install(TARGETS ${PROJECT_NAME}_examples
             EXPORT ${PROJECT_NAME}_Exports
             ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-ADD_DEPENDENCIES(${PROJECT_NAME}examples ${PROJECT_NAME}Proto)
-
-FOREACH(EXECUTABLE
+foreach(EXECUTABLE
         costas_array
         cryptarithm
         cvrp_disjoint_tw
@@ -51,7 +56,8 @@ FOREACH(EXECUTABLE
         strawberry_fields_with_column_generation
         tsp
         weighted_tardiness_sat)
-    ADD_EXECUTABLE(${EXECUTABLE} ${EXECUTABLE}.cc)
-    TARGET_LINK_LIBRARIES(${EXECUTABLE} ${PROJECT_NAME}examples ${PROJECT_NAME})
-    INSTALL(TARGETS ${EXECUTABLE} RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    add_executable(${EXECUTABLE}_example ${EXECUTABLE}.cc)
+    target_link_libraries(${EXECUTABLE}_example ${PROJECT_NAME}_examples ${PROJECT_NAME})
+		add_test(NAME ${EXECUTABLE}_example COMMAND ${EXECUTABLE}_example)
+    install(TARGETS ${EXECUTABLE}_example RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 ENDFOREACH()
