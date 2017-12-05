@@ -12,23 +12,20 @@ if (MSVC)
 endif()
 
 ExternalProject_Add(glog_project
-	#PREFIX glog
+	PREFIX glog_project
 	GIT_REPOSITORY ${glog_URL}
 	GIT_TAG "v${glog_VERSION}"
-	#DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
 	SOURCE_DIR ${CMAKE_BINARY_DIR}/glog-src
 	BINARY_DIR ${CMAKE_BINARY_DIR}/glog-build
-	#BUILD_IN_SOURCE 1
 	UPDATE_COMMAND ""
 	PATCH_COMMAND git am -3 ${CMAKE_SOURCE_DIR}/patches/glog_includedir_fix.patch
-	CONFIGURE_COMMAND ${CMAKE_COMMAND}
+	CONFIGURE_COMMAND ${CMAKE_COMMAND} <SOURCE_DIR>
 	-DWITH_GFLAGS=ON
 	-DBUILD_TESTING=OFF
 	-DCMAKE_POSITION_INDEPENDENT_CODE=ON
 	${glog_ADDITIONAL_CMAKE_OPTIONS}
-	../glog-src
-	BUILD_COMMAND ""
 	INSTALL_COMMAND ""
+	TEST_COMMAND ""
 	CMAKE_CACHE_ARGS
 	-DCMAKE_BUILD_TYPE:STRING=Release
 	-DCMAKE_VERBOSE_MAKEFILE:BOOL=OFF
@@ -42,9 +39,11 @@ if(NOT gflags_FOUND)
     add_dependencies(glog_project gflags_project)
 endif()
 
-# Specify include dir
 ExternalProject_Get_Property(glog_project source_dir)
-set(glog_INCLUDE_DIRS ${source_dir}/include)
+ExternalProject_Get_Property(glog_project binary_dir)
+
+# Specify include dir
+set(glog_INCLUDE_DIRS ${source_dir}/src ${binary_dir})
 
 # Library
 ExternalProject_Get_Property(glog_project binary_dir)

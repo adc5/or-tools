@@ -1,31 +1,32 @@
 set(ADD_CXXFLAGS "-DCBC_THREAD_SAFE -DCBC_NO_INTERRUPT")
 
 foreach (COIN_PROJECT CoinUtils Osi Clp Cgl Cbc)
-    SET(${COIN_PROJECT}_URL https://github.com/coin-or/${COIN_PROJECT}.git)
-    SET(${COIN_PROJECT}_INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR}/install/include/coin)
+    set(${COIN_PROJECT}_URL https://github.com/coin-or/${COIN_PROJECT}.git)
 
     ExternalProject_Add(${COIN_PROJECT}_project
-			#PREFIX ${COIN_PROJECT}
+			PREFIX ${COIN_PROJECT}_project
       GIT_REPOSITORY ${${COIN_PROJECT}_URL}
       GIT_TAG "releases/${${COIN_PROJECT}_VERSION}"
-			#DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
 			SOURCE_DIR ${CMAKE_BINARY_DIR}/${COIN_PROJECT}-src
+			INSTALL_DIR ${CMAKE_BINARY_DIR}/coin-install
 			BUILD_IN_SOURCE 1
       UPDATE_COMMAND ""
-      CONFIGURE_COMMAND ${CMAKE_BINARY_DIR}/${COIN_PROJECT}-src/configure
+			CONFIGURE_COMMAND <SOURCE_DIR>/configure
       --enable-silent-rules --disable-bzlib --without-lapack --with-pic
-			--enable-static --prefix=${CMAKE_BINARY_DIR}/${COIN_PROJECT}-build
+			--enable-static --prefix=<INSTALL_DIR>
       ADD_CXXFLAGS=${ADD_CXXFLAGS}
+			TEST_COMMAND ""
 			)
 
-		# Specify include dir
 		ExternalProject_Get_Property(${COIN_PROJECT}_project source_dir)
-		set(${COIN_PROJECT}_INCLUDE_DIRS ${source_dir}/include)
+		ExternalProject_Get_Property(${COIN_PROJECT}_project install_dir)
+
+		# Specify include dir
+		set(${COIN_PROJECT}_INCLUDE_DIRS ${install_dir}/include/coin)
 
 		# Library
-		ExternalProject_Get_Property(${COIN_PROJECT}_project binary_dir)
 		set(${COIN_PROJECT}_LIBRARY_PATH
-			${binary_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}${COIN_PROJECT}.a)
+			${install_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}${COIN_PROJECT}.a)
 		set(${COIN_PROJECT}_LIBRARY ${COIN_PROJECT})
 		add_library(${${COIN_PROJECT}_LIBRARY} STATIC IMPORTED)
 		set_property(TARGET ${${COIN_PROJECT}_LIBRARY} PROPERTY IMPORTED_LOCATION
@@ -36,10 +37,10 @@ foreach (COIN_PROJECT CoinUtils Osi Clp Cgl Cbc)
     if (${COIN_PROJECT} STREQUAL "Cbc" OR ${COIN_PROJECT} STREQUAL "Clp")
 			add_library(Osi${COIN_PROJECT} STATIC IMPORTED)
 			set_property(TARGET Osi${COIN_PROJECT} PROPERTY IMPORTED_LOCATION
-				${binary_dir}/lib/libOsi${COIN_PROJECT}.a)
+				${install_dir}/lib/libOsi${COIN_PROJECT}.a)
 			add_library(${COIN_PROJECT}Solver STATIC IMPORTED)
 			set_property(TARGET ${COIN_PROJECT}Solver PROPERTY IMPORTED_LOCATION
-				${binary_dir}/lib/lib${COIN_PROJECT}Solver.a)
+				${install_dir}/lib/lib${COIN_PROJECT}Solver.a)
     endif()
 
     add_dependencies(${COIN_PROJECT} ${COIN_PROJECT}_project)

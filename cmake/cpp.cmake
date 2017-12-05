@@ -29,7 +29,7 @@ target_link_libraries(${PROJECT_NAME}
         ${CMAKE_THREAD_LIBS_INIT}
 				)
 
-#include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${CMAKE_SOURCE_DIR})
 
 # Generate/Build Protobuf sources
 find_package(Protobuf)
@@ -40,7 +40,7 @@ PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${proto_files})
 #ADD_CUSTOM_TARGET(${PROJECT_NAME}ProtoSources ALL DEPENDS ${PROTO_SRCS})
 add_library(${PROJECT_NAME}_proto OBJECT ${PROTO_SRCS} ${PROTO_HDRS})
 set_target_properties(${PROJECT_NAME}_proto PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_sources(${PROJECT_NAME} PUBLIC $<TARGET_OBJECTS:${PROJECT_NAME}_proto>)
+target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_proto>)
 # add_dependencies really Needed ?
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_proto)
 
@@ -56,7 +56,7 @@ ENDIF()
 foreach(SUBPROJECT base port util data lp_data glop graph algorithms sat bop
 		linear_solver constraint_solver)
     add_subdirectory(ortools/${SUBPROJECT})
-		target_sources(${PROJECT_NAME} PUBLIC	$<TARGET_OBJECTS:${PROJECT_NAME}_${SUBPROJECT}>)
+		target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_${SUBPROJECT}>)
 	# add_dependencies really Needed ?
 		add_dependencies(${PROJECT_NAME}_${SUBPROJECT} ${PROJECT_NAME}_proto)
 endforeach()

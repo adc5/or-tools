@@ -6,21 +6,17 @@ if (MSVC)
 endif()
 
 ExternalProject_Add(Protobuf_project
-	#PREFIX Protobuf
+	PREFIX Protobuf_project
 	GIT_REPOSITORY ${Protobuf_URL}
 	GIT_TAG "v${Protobuf_VERSION}"
-	#DOWNLOAD_DIR "${DOWNLOAD_LOCATION}"
 	SOURCE_DIR ${CMAKE_BINARY_DIR}/Protobuf-src
 	BINARY_DIR ${CMAKE_BINARY_DIR}/Protobuf-build
-	#BUILD_IN_SOURCE 1
 	UPDATE_COMMAND ""
-	CONFIGURE_COMMAND ${CMAKE_COMMAND}
+	CONFIGURE_COMMAND ${CMAKE_COMMAND} <SOURCE_DIR>/cmake
 	-DBUILD_STATIC_LIBS=ON
 	-Dprotobuf_BUILD_TESTS=OFF
 	-DCMAKE_POSITION_INDEPENDENT_CODE=ON
 	${Protobuf_ADDITIONAL_CMAKE_OPTIONS}
-	../Protobuf-src/cmake
-	BUILD_COMMAND ""
 	INSTALL_COMMAND ""
 	TEST_COMMAND ""
 	CMAKE_CACHE_ARGS
@@ -34,11 +30,11 @@ ExternalProject_Add(Protobuf_project
 
 # Specify include dir
 ExternalProject_Get_Property(Protobuf_project source_dir)
-set(Protobuf_INCLUDE_DIRS ${source_dir}/include)
+set(Protobuf_INCLUDE_DIRS ${source_dir}/src)
 
 # Library
 ExternalProject_Get_Property(Protobuf_project binary_dir)
-set(Protobuf_LIBRARY_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}Protobuf.a)
+set(Protobuf_LIBRARY_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}protobuf.a)
 set(Protobuf_LIBRARY Protobuf)
 add_library(${Protobuf_LIBRARY} STATIC IMPORTED)
 set_property(TARGET ${Protobuf_LIBRARY} PROPERTY IMPORTED_LOCATION

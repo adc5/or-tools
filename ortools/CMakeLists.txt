@@ -43,7 +43,8 @@ target_link_libraries(${PROJECT_NAME}
 	${Cbc_LIBRARIES}
 	${CMAKE_THREAD_LIBS_INIT})
 
-include_directories(${PROJECT_SOURCE_DIR})
+# #include "ortools/..."
+include_directories(${PROJECT_SOURCE_DIR}/..)
 
 # Generate/Build Protobuf sources
 include_directories(${Protobuf_INCLUDE_DIRS})
