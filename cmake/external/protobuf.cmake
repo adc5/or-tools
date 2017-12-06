@@ -5,12 +5,11 @@ if (MSVC)
     set(Protobuf_ADDITIONAL_CMAKE_OPTIONS "${Protobuf_ADDITIONAL_CMAKE_OPTIONS} -G \"NMake MakeFiles\"")
 endif()
 
+set_property(DIRECTORY PROPERTY EP_BASE dependencies)
+
 ExternalProject_Add(Protobuf_project
-	PREFIX Protobuf_project
 	GIT_REPOSITORY ${Protobuf_URL}
 	GIT_TAG "v${Protobuf_VERSION}"
-	SOURCE_DIR ${CMAKE_BINARY_DIR}/Protobuf-src
-	BINARY_DIR ${CMAKE_BINARY_DIR}/Protobuf-build
 	UPDATE_COMMAND ""
 	CONFIGURE_COMMAND ${CMAKE_COMMAND} <SOURCE_DIR>/cmake
 	-DBUILD_STATIC_LIBS=ON
@@ -30,24 +29,24 @@ ExternalProject_Add(Protobuf_project
 
 # Specify include dir
 ExternalProject_Get_Property(Protobuf_project source_dir)
-set(Protobuf_INCLUDE_DIRS ${source_dir}/src)
-
-# Library
 ExternalProject_Get_Property(Protobuf_project binary_dir)
-set(Protobuf_LIBRARY_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}protobuf.a)
-set(Protobuf_LIBRARY Protobuf)
-add_library(${Protobuf_LIBRARY} STATIC IMPORTED)
-set_property(TARGET ${Protobuf_LIBRARY} PROPERTY IMPORTED_LOCATION
-	${Protobuf_LIBRARY_PATH})
+
+# Old way
+set(Protobuf_INCLUDE_DIRS ${source_dir}/src)
 set(Protobuf_LIBRARIES Protobuf ${ZLIB_LIBRARIES})
 
-add_dependencies(${Protobuf_LIBRARY} Protobuf_project)
+# Library
+add_library(Protobuf STATIC IMPORTED)
+set_property(TARGET Protobuf PROPERTY IMPORTED_LOCATION
+	${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}protobuf.a)
+set_property(TARGET Protobuf PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${source_dir}/src)
+
+add_dependencies(Protobuf Protobuf_project)
 
 unset(Protobuf_PROTOC_EXECUTABLE CACHE)
 add_executable(Protobuf_PROTOC_EXECUTABLE IMPORTED)
 set_property(TARGET Protobuf_PROTOC_EXECUTABLE PROPERTY IMPORTED_LOCATION
 	${binary_dir}/protoc)
-	#	${CMAKE_BINARY_DIR}/protobuf_project/src/protobuf/protoc)
-set(Protobuf_PROTOC_EXECUTABLE Protobuf_PROTOC_EXECUTABLE)
+set(Protobuf_PROTOC_EXECUTABLE ${binary_dir}/protoc)
 
 add_dependencies(Protobuf_PROTOC_EXECUTABLE Protobuf_project)

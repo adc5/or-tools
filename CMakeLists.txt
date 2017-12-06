@@ -23,13 +23,24 @@ message(STATUS "Build Python library: ${BUILD_PYTHON}")
 message(STATUS "Build Java library: ${BUILD_JAVA}")
 message(STATUS "Build CSharp library: ${BUILD_CSHARP}")
 
+# For Debug only ?
+set(CMAKE_INSTALL_PREFIX install
+	CACHE STRING "install prefix for debug purpose")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+	CACHE STRING "Build directory for .a")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+	CACHE STRING "Build directory for .so")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+	CACHE STRING "Build directory for binary")
+
+# Required dependencies
 include(dependencies)
 
 #add_subdirectory(ortools)
 include(cpp)
-include(python)
-include(java)
-include(csharp)
+#include(python)
+#include(java)
+#include(csharp)
 
 add_subdirectory(examples/cpp)
 add_subdirectory(examples/python)

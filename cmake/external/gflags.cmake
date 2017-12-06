@@ -4,12 +4,11 @@ if (MSVC)
     set(gflags_ADDITIONAL_CMAKE_OPTIONS "-G \"NMake MakeFiles\"")
 endif()
 
+set_property(DIRECTORY PROPERTY EP_BASE dependencies)
+
 ExternalProject_Add(gflags_project
-	PREFIX gflags_project
 	GIT_REPOSITORY ${gflags_URL}
 	GIT_TAG "v${gflags_VERSION}"
-	SOURCE_DIR ${CMAKE_BINARY_DIR}/gflags-src
-	BINARY_DIR ${CMAKE_BINARY_DIR}/gflags-build
 	UPDATE_COMMAND ""
 	CONFIGURE_COMMAND ${CMAKE_COMMAND} <SOURCE_DIR>
 	-DBUILD_STATIC_LIBS=ON
@@ -30,15 +29,15 @@ ExternalProject_Add(gflags_project
 ExternalProject_Get_Property(gflags_project source_dir)
 ExternalProject_Get_Property(gflags_project binary_dir)
 
-# Specify include dir
+# Old way
 set(gflags_INCLUDE_DIRS ${binary_dir}/include)
-
-# Library
-set(gflags_LIBRARY_PATH ${binary_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}gflags.a)
-set(gflags_LIBRARY gflags)
-add_library(${gflags_LIBRARY} STATIC IMPORTED)
-set_property(TARGET ${gflags_LIBRARY} PROPERTY IMPORTED_LOCATION
-	${gflags_LIBRARY_PATH})
 set(gflags_LIBRARIES gflags)
 
-add_dependencies(${gflags_LIBRARY} gflags_project)
+# Library
+add_library(gflags STATIC IMPORTED)
+set_property(TARGET gflags PROPERTY IMPORTED_LOCATION
+	${binary_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}gflags.a)
+set_property(TARGET gflags PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+	${binary_dir}/include)
+
+add_dependencies(gflags gflags_project)

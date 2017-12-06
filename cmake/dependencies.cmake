@@ -1,3 +1,7 @@
+if (NOT BUILD_DEPS)
+	return()
+endif()
+
 enable_language(CXX)
 
 if (MSVC)
@@ -24,9 +28,7 @@ if (NOT Protobuf_FOUND)
 	message(STATUS "Did not find system protobuf or forced build. Building as an external project")
 	include(external/protobuf)
 endif()
-include_directories(${Protobuf_INCLUDE_DIRS})
-#set(PROTOBUF_IMPORT_DIRS ${PROJECT_SOURCE_DIR})
-set(PROTOBUF_GENERATE_CPP_APPEND_PATH OFF)
+#include_directories(${Protobuf_INCLUDE_DIRS})
 
 # gflags
 if (BUILD_DEPS)
@@ -38,7 +40,7 @@ if (NOT gflags_FOUND)
 	message(STATUS "Did not find system gflags or forced build. Building as an external project")
 	include(external/gflags)
 endif()
-include_directories(${gflags_INCLUDE_DIRS})
+#include_directories(${gflags_INCLUDE_DIRS})
 
 # glog
 if (BUILD_DEPS)
@@ -50,7 +52,7 @@ if (NOT glog_FOUND)
 	message(STATUS "Did not find system glog or forced build. Building as an external project.")
 	include(external/glog)
 endif()
-include_directories(${glog_INCLUDE_DIRS})
+#include_directories(${glog_INCLUDE_DIRS})
 
 # Cbc
 if (BUILD_DEPS)
@@ -67,9 +69,10 @@ if (NOT Cbc_FOUND)
 	#endif()
 	#else()
 endif()
-include_directories(${Cbc_INCLUDE_DIRS})
+#include_directories(${Cbc_INCLUDE_DIRS})
 if (MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DUSE_CLP /DUSE_CBC")
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CLP -DUSE_CBC")
 endif()
+#add_definitions("-DUSE_CLP -DUSE_CBC")

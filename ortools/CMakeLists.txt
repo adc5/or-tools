@@ -1,12 +1,33 @@
+if (NOT BUILD_CXX)
+	return()
+endif()
+
 cmake_minimum_required(VERSION 3.5)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(ORToolsHelpers)
 set_version(ORTOOLS_VERSION)
-message(STATUS "Or-Tools Version: ${ORTOOLS_VERSION}")
 project(ortools LANGUAGES CXX VERSION ${ORTOOLS_VERSION})
 
-option(ORTOOLS_BUILD_TESTS "Build Or-Tools's own tests." ON)
+# Project use ortools as root include dir aka #include "ortools/x/y.h" not #include "x/y.h"
+get_filename_component(PARENT_SOURCE_DIR ${PROJECT_SOURCE_DIR} DIRECTORY)
+set(PROJECT_SOURCE_DIR ${PARENT_SOURCE_DIR})
+get_filename_component(PARENT_BINARY_DIR ${PROJECT_BINARY_DIR} DIRECTORY)
+set(PROJECT_BINARY_DIR ${PARENT_BINARY_DIR})
+
+# SWIG Python Java tools
+if (BUILD_PYTHON OR BUILD_JAVA)
+	find_package(SWIG REQUIRED)
+	include(UseSWIG)
+endif()
+
+if (BUILD_PYTHON)
+	# Specify python version
+	set(Python_ADDITIONAL_VERSIONS "3.6;3.5;2.7"
+		CACHE STRING "available python version")
+	find_package(PythonInterp REQUIRED)
+	find_package(PythonLibs REQUIRED)
+endif()
 
 # config options
 if (MSVC)
@@ -30,48 +51,65 @@ check_target(Cbc)
 #check_target(absl)
 
 # Main Target
-add_library(${PROJECT_NAME} "")
+add_library(${PROJECT_NAME} SHARED "")
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_STANDARD 11)
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_EXTENSIONS OFF)
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(${PROJECT_NAME} INTERFACE
+	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
+	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
+  $<INSTALL_INTERFACE:include>
+	)
 target_link_libraries(${PROJECT_NAME}
 	${Protobuf_LIBRARIES}
 	${gflags_LIBRARIES}
 	${glog_LIBRARIES}
 	${Cbc_LIBRARIES}
-	${CMAKE_THREAD_LIBS_INIT})
-
-# #include "ortools/..."
-include_directories(${PROJECT_SOURCE_DIR}/..)
+	${CMAKE_THREAD_LIBS_INIT}
+	)
 
 # Generate/Build Protobuf sources
-include_directories(${Protobuf_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${Protobuf_INCLUDE_DIR})
+find_package(Protobuf)
 file(GLOB_RECURSE PROTO_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
-message(STATUS "proto files: ${PROTO_FILES}")
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS EXPORT_MACRO DLL_EXPORT	${PROTO_FILES})
+
+set(PROTOBUF_IMPORT_DIRS ${PROJECT_SOURCE_DIR})
+set(PROTOBUF_GENERATE_CPP_APPEND_PATH OFF)
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 add_library(${PROJECT_NAME}_proto OBJECT ${PROTO_SRCS} ${PROTO_HDRS})
 set_target_properties(${PROJECT_NAME}_proto PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_sources(${PROJECT_NAME} PUBLIC $<TARGET_OBJECTS:${PROJECT_NAME}_proto>)
+target_include_directories(${PROJECT_NAME}_proto PRIVATE
+	${PROJECT_SOURCE_DIR}
+	${PROJECT_BINARY_DIR}
+	${PROJECT_BINARY_DIR}/ortools
+	)
+
 # add_dependencies() really Needed ?
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_proto)
+target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_proto>)
 
 foreach(SUBPROJECT base port	util data lp_data glop graph algorithms sat	bop
 		linear_solver	constraint_solver)
-	add_subdirectory(ortools/${SUBPROJECT})
-	target_sources(${PROJECT_NAME} PUBLIC $<TARGET_OBJECTS:${PROJECT_NAME}_${SUBPROJECT}>)
+	add_subdirectory(${SUBPROJECT})
+	target_include_directories(${PROJECT_NAME}_${SUBPROJECT} PUBLIC
+		${PROJECT_SOURCE_DIR}
+		${PROJECT_BINARY_DIR}
+		)
+	target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_${SUBPROJECT}>)
 	# add_dependencies() really Needed ?
 	add_dependencies(${PROJECT_NAME}_${SUBPROJECT} ${PROJECT_NAME}_proto)
 endforeach()
 
-if(ORTOOLS_BUILD_TESTS)
-	enable_testing()
-endif()
-
 # Install rules
+include(GenerateExportHeader)
+GENERATE_EXPORT_HEADER(${PROJECT_NAME})
+set_property(TARGET ${PROJECT_NAME} PROPERTY VERSION ${PROJECT_VERSION})
+set_property(TARGET ${PROJECT_NAME} PROPERTY SOVERSION ${PROJECT_VERSION_MAJOR})
+set_property(TARGET ${PROJECT_NAME} PROPERTY INTERFACE_${PROJECT_NAME}_MAJOR_VERSION ${PROJECT_VERSION_MAJOR})
+set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING ${PROJECT_NAME}_MAJOR_VERSION)
+
 include(GNUInstallDirs)
 install(TARGETS ${PROJECT_NAME}
 	EXPORT ${PROJECT_NAME}Targets
@@ -80,6 +118,18 @@ install(TARGETS ${PROJECT_NAME}
 	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 	)
+
+install(DIRECTORY ortools
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    COMPONENT Devel
+    FILES_MATCHING
+		PATTERN "*.h")
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/ortools
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    COMPONENT Devel
+    FILES_MATCHING
+		PATTERN "*.pb.h"
+    PATTERN CMakeFiles EXCLUDE)
 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
@@ -97,4 +147,3 @@ install(
 	"${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
 	DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
 	COMPONENT Devel)
-
