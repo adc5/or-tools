@@ -9,12 +9,6 @@ include(ORToolsHelpers)
 set_version(ORTOOLS_VERSION)
 project(ortools LANGUAGES CXX VERSION ${ORTOOLS_VERSION})
 
-# Project use ortools as root include dir aka #include "ortools/x/y.h" not #include "x/y.h"
-get_filename_component(PARENT_SOURCE_DIR ${PROJECT_SOURCE_DIR} DIRECTORY)
-set(PROJECT_SOURCE_DIR ${PARENT_SOURCE_DIR})
-get_filename_component(PARENT_BINARY_DIR ${PROJECT_BINARY_DIR} DIRECTORY)
-set(PROJECT_BINARY_DIR ${PARENT_BINARY_DIR})
-
 # SWIG Python Java tools
 if (BUILD_PYTHON OR BUILD_JAVA)
 	find_package(SWIG REQUIRED)
@@ -56,50 +50,69 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_STANDARD 11)
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_EXTENSIONS OFF)
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+#set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(${PROJECT_NAME} INTERFACE
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
 	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
   $<INSTALL_INTERFACE:include>
 	)
-target_link_libraries(${PROJECT_NAME}
-	${Protobuf_LIBRARIES}
-	${gflags_LIBRARIES}
-	${glog_LIBRARIES}
-	${Cbc_LIBRARIES}
-	${CMAKE_THREAD_LIBS_INIT}
-	)
+target_link_libraries(${PROJECT_NAME} PUBLIC Protobuf gflags	glog Cbc ${CMAKE_THREAD_LIBS_INIT})
+
+# Project use ortools as root include dir aka #include "ortools/x/y.h" not #include "x/y.h"
+get_filename_component(PARENT_SOURCE_DIR ${PROJECT_SOURCE_DIR} DIRECTORY)
+get_filename_component(PARENT_BINARY_DIR ${PROJECT_BINARY_DIR} DIRECTORY)
 
 # Generate/Build Protobuf sources
-include_directories(${Protobuf_INCLUDE_DIR})
-find_package(Protobuf)
-file(GLOB_RECURSE PROTO_FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.proto")
+set(PROTO_HDRS)
+set(PROTO_SRCS)
+file(GLOB_RECURSE PROTO_FILES RELATIVE ${PROJECT_SOURCE_DIR} "*.proto")
+foreach (PROTO_FILE ${proto_files})
+	message(STATUS "protoc proto: ${PROTO_FILE}")
+	file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/)
+	get_filename_component(PROTO_DIR ${PROTO_FILE} DIRECTORY)
+	get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
 
-set(PROTOBUF_IMPORT_DIRS ${PROJECT_SOURCE_DIR})
-set(PROTOBUF_GENERATE_CPP_APPEND_PATH OFF)
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
-add_library(${PROJECT_NAME}_proto OBJECT ${PROTO_SRCS} ${PROTO_HDRS})
+	set(PROTO_HDR ${PROJECT_BINARY_DIR}/${PROTO_DIR}/${PROTO_NAME}.pb.h)
+	set(PROTO_SRC ${PROJECT_BINARY_DIR}/${PROTO_DIR}/${PROTO_NAME}.pb.cc)
+	message(STATUS "protoc hdr: ${PROTO_HDR}")
+	message(STATUS "protoc src: ${PROTO_SRC}")
+
+	add_custom_command(
+		OUTPUT ${PROTO_SRC} ${PROTO_HDR}
+		COMMAND protobuf::protoc
+		"--cpp_out=${PROJECT_BINARY_DIR}"
+		"--proto_path=${PARENT_SOURCE_DIR}"
+		${PROTO_FILE}
+		DEPENDS ${PROTO_FILE} protobuf::protoc
+		COMMENT "Running C++ protocol buffer compiler on ${PROTO}"
+		VERBATIM)
+	list(APPEND PROTO_HDRS ${PROTO_HDR})
+	list(APPEND PROTO_SRCS ${PROTO_SRC})
+endforeach()
+add_library(${PROJECT_NAME}_proto STATIC ${PROTO_SRCS} ${PROTO_HDRS})
 set_target_properties(${PROJECT_NAME}_proto PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(${PROJECT_NAME}_proto PROPERTIES CMAKE_CXX_STANDARD 11)
+set_target_properties(${PROJECT_NAME}_proto PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
+set_target_properties(${PROJECT_NAME}_proto PROPERTIES CMAKE_CXX_EXTENSIONS OFF)
 target_include_directories(${PROJECT_NAME}_proto PRIVATE
 	${PROJECT_SOURCE_DIR}
 	${PROJECT_BINARY_DIR}
-	${PROJECT_BINARY_DIR}/ortools
+	#$<TARGET_PROPERTY:Protobuf,INTERFACE_INCLUDE_DIRECTORIES>
 	)
+target_link_libraries(${PROJECT_NAME}_proto PRIVATE Protobuf)
+add_library(${PROJECT_NAME}::proto ALIAS ${PROJECT_NAME}_proto)
 
-# add_dependencies() really Needed ?
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_proto)
-target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_proto>)
+# Add ortools::proto to libortools
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}::proto)
+#target_sources(${PROJECT_NAME} PRIVATE	$<TARGET_OBJECTS:${PROJECT_NAME}::proto>)
 
-foreach(SUBPROJECT base port	util data lp_data glop graph algorithms sat	bop
-		linear_solver	constraint_solver)
-	add_subdirectory(${SUBPROJECT})
-	target_include_directories(${PROJECT_NAME}_${SUBPROJECT} PUBLIC
-		${PROJECT_SOURCE_DIR}
-		${PROJECT_BINARY_DIR}
-		)
-	target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_${SUBPROJECT}>)
-	# add_dependencies() really Needed ?
-	add_dependencies(${PROJECT_NAME}_${SUBPROJECT} ${PROJECT_NAME}_proto)
+foreach(SUBPROJECT
+		algorithms base bop	constraint_solver	data glop	graph	linear_solver	lp_data
+		port sat util)
+	  add_subdirectory(${SUBPROJECT})
+		target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}::${SUBPROJECT})
+		#target_sources(${PROJECT_NAME} PRIVATE
+		#	$<TARGET_OBJECTS:${PROJECT_NAME}::${SUBPROJECT}>)
 endforeach()
 
 # Install rules

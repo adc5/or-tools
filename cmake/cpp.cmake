@@ -7,7 +7,7 @@ set_version(VERSION)
 project(ortools LANGUAGES CXX VERSION ${VERSION})
 
 # SWIG Python Java tools
-if (BUILD_PYTHON OR BUILD_JAVA)
+if (BUILD_PYTHON OR BUILD_JAVA OR BUILD_CSHARP)
 	find_package(SWIG REQUIRED)
 	include(UseSWIG)
 endif()
@@ -18,6 +18,11 @@ if (BUILD_PYTHON)
 		CACHE STRING "available python version")
 	find_package(PythonInterp REQUIRED)
 	find_package(PythonLibs REQUIRED)
+endif()
+
+if (BUILD_JAVA)
+	find_package(Java)
+	find_package(JNI)
 endif()
 
 # config options
@@ -41,11 +46,11 @@ check_target(Cbc)
 
 # Main Target
 add_library(${PROJECT_NAME} SHARED "")
-set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_STANDARD 11)
-set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
-set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_CXX_EXTENSIONS OFF)
+set_target_properties(${NAME} PROPERTIES CMAKE_CXX_STANDARD 11)
+set_target_properties(${NAME} PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
+set_target_properties(${NAME} PROPERTIES CMAKE_CXX_EXTENSIONS OFF)
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+#set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(${PROJECT_NAME} INTERFACE
 	$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
 	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
@@ -53,44 +58,56 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 	)
 target_link_libraries(${PROJECT_NAME} PUBLIC Protobuf gflags glog Cbc ${CMAKE_THREAD_LIBS_INIT})
 
-# Generate/Build Protobuf sources
-include_directories(${Protobuf_INCLUDE_DIRS})
-find_package(Protobuf)
+# Generate Protobuf cpp sources
+set(PROTO_HDRS)
+set(PROTO_SRCS)
 file(GLOB_RECURSE proto_files RELATIVE ${PROJECT_SOURCE_DIR} "ortools/*.proto")
+foreach (PROTO_FILE ${proto_files})
+	message(STATUS "protoc proto: ${PROTO_FILE}")
 
-#set(PROTOBUF_IMPORT_DIRS ${PROJECT_SOURCE_DIR})
-set(PROTOBUF_GENERATE_CPP_APPEND_PATH OFF)
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS ${proto_files})
-add_library(${PROJECT_NAME}_proto OBJECT ${PROTO_SRCS} ${PROTO_HDRS})
+	get_filename_component(PROTO_DIR ${PROTO_FILE} DIRECTORY)
+	get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
+	set(PROTO_HDR ${PROJECT_BINARY_DIR}/${PROTO_DIR}/${PROTO_NAME}.pb.h)
+	set(PROTO_SRC ${PROJECT_BINARY_DIR}/${PROTO_DIR}/${PROTO_NAME}.pb.cc)
+	message(STATUS "protoc hdr: ${PROTO_HDR}")
+	message(STATUS "protoc src: ${PROTO_SRC}")
+
+	add_custom_command(
+		OUTPUT ${PROTO_SRC} ${PROTO_HDR}
+		COMMAND protobuf::protoc
+		"--cpp_out=${PROJECT_BINARY_DIR}"
+		"--proto_path=${PROJECT_SOURCE_DIR}"
+		${PROTO_FILE}
+		DEPENDS ${PROTO_FILE} protobuf::protoc
+		COMMENT "Running C++ protocol buffer compiler on ${PROTO}"
+		VERBATIM)
+	list(APPEND PROTO_HDRS ${PROTO_HDR})
+	list(APPEND PROTO_SRCS ${PROTO_SRC})
+endforeach()
+add_library(${PROJECT_NAME}_proto STATIC ${PROTO_SRCS} ${PROTO_HDRS})
 set_target_properties(${PROJECT_NAME}_proto PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(${PROJECT_NAME}_proto PROPERTIES CMAKE_CXX_STANDARD 11)
+set_target_properties(${PROJECT_NAME}_proto PROPERTIES CMAKE_CXX_STANDARD_REQUIRED ON)
+set_target_properties(${PROJECT_NAME}_proto PROPERTIES CMAKE_CXX_EXTENSIONS OFF)
 target_include_directories(${PROJECT_NAME}_proto PRIVATE
 	${PROJECT_SOURCE_DIR}
 	${PROJECT_BINARY_DIR}
+	#$<TARGET_PROPERTY:Protobuf,INTERFACE_INCLUDE_DIRECTORIES>
 	)
+target_link_libraries(${PROJECT_NAME}_proto PRIVATE Protobuf)
+add_library(${PROJECT_NAME}::proto ALIAS ${PROJECT_NAME}_proto)
 
-# add_dependencies really Needed ?
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_proto)
-target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_proto>)
+# Add ortools::proto to libortools
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}::proto)
+#target_sources(${PROJECT_NAME} PRIVATE	$<TARGET_OBJECTS:${PROJECT_NAME}::proto>)
 
-IF(NOT Cbc_FOUND)
-    IF(NOT MSVC)
-        ADD_DEPENDENCIES(${PROJECT_NAME}_proto Cbc)
-    ENDIF()
-ENDIF()
-IF(NOT glog_FOUND)
-    ADD_DEPENDENCIES(${PROJECT_NAME}_proto glog)
-ENDIF()
-
-foreach(SUBPROJECT base port util data lp_data glop graph algorithms sat bop
-		linear_solver constraint_solver)
-    add_subdirectory(ortools/${SUBPROJECT})
-		target_include_directories(${PROJECT_NAME}_${SUBPROJECT} PRIVATE
-			${PROJECT_SOURCE_DIR}
-			${PROJECT_BINARY_DIR}
-			)
-		target_sources(${PROJECT_NAME} PRIVATE $<TARGET_OBJECTS:${PROJECT_NAME}_${SUBPROJECT}>)
-	# add_dependencies really Needed ?
-		add_dependencies(${PROJECT_NAME}_${SUBPROJECT} ${PROJECT_NAME}_proto)
+foreach(SUBPROJECT
+		algorithms base bop	constraint_solver	data glop	graph	linear_solver	lp_data
+		port sat util)
+	  add_subdirectory(ortools/${SUBPROJECT})
+		target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}::${SUBPROJECT})
+		#target_sources(${PROJECT_NAME} PRIVATE
+		#	$<TARGET_OBJECTS:${PROJECT_NAME}::${SUBPROJECT}>)
 endforeach()
 
 # Install rules
@@ -103,12 +120,12 @@ set_property(TARGET ${PROJECT_NAME} APPEND PROPERTY COMPATIBLE_INTERFACE_STRING 
 
 include(GNUInstallDirs)
 install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}Targets
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-		)
+	EXPORT ${PROJECT_NAME}Targets
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	)
 
 install(DIRECTORY ortools
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
