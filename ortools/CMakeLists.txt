@@ -56,7 +56,7 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 	$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
   $<INSTALL_INTERFACE:include>
 	)
-target_link_libraries(${PROJECT_NAME} PUBLIC Protobuf gflags	glog Cbc ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(${PROJECT_NAME} PUBLIC Protobuf gflags glog Cbc ${CMAKE_THREAD_LIBS_INIT})
 
 # Project use ortools as root include dir aka #include "ortools/x/y.h" not #include "x/y.h"
 get_filename_component(PARENT_SOURCE_DIR ${PROJECT_SOURCE_DIR} DIRECTORY)
