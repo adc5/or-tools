@@ -35,12 +35,12 @@ set(gflags_LIBRARIES gflags)
 
 # Library
 add_library(gflags STATIC IMPORTED)
-set_property(TARGET gflags PROPERTY IMPORTED_LOCATION
+set_target_properties(gflags PROPERTIES IMPORTED_LOCATION
 	${binary_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}gflags.a)
 # INTERFACE_INCLUDE_DIRECTORIES does not allow non-existent directories
 # cf https://gitlab.kitware.com/cmake/cmake/issues/15052
 file(MAKE_DIRECTORY ${binary_dir}/include)
-set_property(TARGET gflags PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+set_target_properties(gflags PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
 	${binary_dir}/include)
 # Can't Alias imported target.
 #add_library(gflags::gflags ALIAS gflags)

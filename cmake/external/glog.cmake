@@ -41,14 +41,13 @@ set(glog_LIBRARIES glog)
 
 # Library
 add_library(glog STATIC IMPORTED)
-set_property(TARGET glog PROPERTY IMPORTED_LOCATION
+set_target_properties(glog PROPERTIES IMPORTED_LOCATION
 	${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}glog.a)
 # INTERFACE_INCLUDE_DIRECTORIES does not allow non-existent directories
 # cf https://gitlab.kitware.com/cmake/cmake/issues/15052
 file(MAKE_DIRECTORY ${source_dir}/src ${binary_dir})
-set_property(TARGET glog PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-	${source_dir}/src
-	${binary_dir})
+set_target_properties(glog PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+	"${source_dir}/src;${binary_dir}")
 # Can't Alias imported target.
 #add_library(glog::glog ALIAS glog)
 add_dependencies(glog glog_project)

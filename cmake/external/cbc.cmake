@@ -27,12 +27,12 @@ foreach (COIN_PROJECT CoinUtils Osi Clp Cgl Cbc)
 
 	# Library
 	add_library(${COIN_PROJECT} STATIC IMPORTED)
-	set_property(TARGET ${COIN_PROJECT} PROPERTY IMPORTED_LOCATION
+	set_target_properties(${COIN_PROJECT} PROPERTIES IMPORTED_LOCATION
 		${install_dir}/lib/${CMAKE_FIND_LIBRARY_PREFIXES}${COIN_PROJECT}.a)
 	# INTERFACE_INCLUDE_DIRECTORIES does not allow non-existent directories
 	# cf https://gitlab.kitware.com/cmake/cmake/issues/15052
 	file(MAKE_DIRECTORY ${install_dir}/include/coin)
-	set_property(TARGET ${COIN_PROJECT} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+	set_target_properties(${COIN_PROJECT} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
 		${install_dir}/include/coin)
 	# Can't Alias imported target.
 	#add_library(coin::${COIN_PROJECT} ALIAS ${COIN_PROJECT})
@@ -41,18 +41,18 @@ foreach (COIN_PROJECT CoinUtils Osi Clp Cgl Cbc)
 	# Manage OsiCbc  CbcSolver OsiClp ClpSolver
 	if (${COIN_PROJECT} STREQUAL "Cbc" OR ${COIN_PROJECT} STREQUAL "Clp")
 		add_library(Osi${COIN_PROJECT} STATIC IMPORTED)
-		set_property(TARGET Osi${COIN_PROJECT} PROPERTY IMPORTED_LOCATION
+		set_target_properties(Osi${COIN_PROJECT} PROPERTIES IMPORTED_LOCATION
 			${install_dir}/lib/libOsi${COIN_PROJECT}.a)
-		set_property(TARGET Osi${COIN_PROJECT} APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+		set_target_properties(Osi${COIN_PROJECT} PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
 			${install_dir}/include/coin)
 		# Can't Alias imported target.
 		#add_library(coin::Osi${COIN_PROJECT} ALIAS Osi${COIN_PROJECT})
 		add_dependencies(Osi${COIN_PROJECT} ${COIN_PROJECT}_project)
 
 		add_library(${COIN_PROJECT}Solver STATIC IMPORTED)
-		set_property(TARGET ${COIN_PROJECT}Solver PROPERTY IMPORTED_LOCATION
+		set_target_properties(${COIN_PROJECT}Solver PROPERTIES IMPORTED_LOCATION
 			${install_dir}/lib/lib${COIN_PROJECT}Solver.a)
-		set_property(TARGET ${COIN_PROJECT}Solver APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+		set_target_properties(${COIN_PROJECT}Solver PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
 			${install_dir}/include/coin)
 		# Can't Alias imported target.
 		#add_library(coin::${COIN_PROJECT}Solver ALIAS ${COIN_PROJECT}Solver)
@@ -61,8 +61,8 @@ foreach (COIN_PROJECT CoinUtils Osi Clp Cgl Cbc)
 endforeach()
 
 set(Cbc_LIBRARIES Cbc OsiCbc CbcSolver ClpSolver OsiClp)
-set_property(TARGET Cbc APPEND PROPERTY INTERFACE_LINK_LIBRARIES
-	OsiCbc CbcSolver OsiClp ClpSolver)
+set_target_properties(Cbc PROPERTIES INTERFACE_LINK_LIBRARIES
+	"OsiCbc;CbcSolver;OsiClp;ClpSolver")
 
 set_property(TARGET Osi APPEND PROPERTY INTERFACE_LINK_LIBRARIES CoinUtils)
 set_property(TARGET Clp APPEND PROPERTY INTERFACE_LINK_LIBRARIES Osi)

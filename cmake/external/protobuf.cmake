@@ -37,13 +37,15 @@ set(Protobuf_LIBRARIES Protobuf ${ZLIB_LIBRARIES})
 
 # Library
 add_library(Protobuf STATIC IMPORTED)
-set_property(TARGET Protobuf PROPERTY IMPORTED_LOCATION
+set_target_properties(Protobuf PROPERTIES IMPORTED_LOCATION
 	${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}protobuf.a)
 # INTERFACE_INCLUDE_DIRECTORIES does not allow non-existent directories
 # cf https://gitlab.kitware.com/cmake/cmake/issues/15052
 file(MAKE_DIRECTORY ${source_dir}/src)
-set_property(TARGET Protobuf APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+set_target_properties(Protobuf PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
 	${source_dir}/src)
+set_target_properties(Protobuf PROPERTIES INTERFACE_LINK_LIBRARIES
+	${ZLIB_LIBRARIES})
 # Can't Alias imported target.
 #add_library(Protobuf::Protobuf ALIAS Protobuf)
 add_dependencies(Protobuf Protobuf_project)
