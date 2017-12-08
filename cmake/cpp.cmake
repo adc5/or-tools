@@ -63,15 +63,13 @@ set(PROTO_HDRS)
 set(PROTO_SRCS)
 file(GLOB_RECURSE proto_files RELATIVE ${PROJECT_SOURCE_DIR} "ortools/*.proto")
 foreach (PROTO_FILE ${proto_files})
-	message(STATUS "protoc proto: ${PROTO_FILE}")
-
+	#message(STATUS "protoc proto: ${PROTO_FILE}")
 	get_filename_component(PROTO_DIR ${PROTO_FILE} DIRECTORY)
 	get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
 	set(PROTO_HDR ${PROJECT_BINARY_DIR}/${PROTO_DIR}/${PROTO_NAME}.pb.h)
 	set(PROTO_SRC ${PROJECT_BINARY_DIR}/${PROTO_DIR}/${PROTO_NAME}.pb.cc)
-	message(STATUS "protoc hdr: ${PROTO_HDR}")
-	message(STATUS "protoc src: ${PROTO_SRC}")
-
+	#message(STATUS "protoc hdr: ${PROTO_HDR}")
+	#message(STATUS "protoc src: ${PROTO_SRC}")
 	add_custom_command(
 		OUTPUT ${PROTO_SRC} ${PROTO_HDR}
 		COMMAND protobuf::protoc
