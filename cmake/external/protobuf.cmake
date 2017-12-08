@@ -50,6 +50,7 @@ set_target_properties(Protobuf PROPERTIES INTERFACE_LINK_LIBRARIES
 #add_library(Protobuf::Protobuf ALIAS Protobuf)
 add_dependencies(Protobuf Protobuf_project)
 
+# Export protoc executable to consume .proto file during build
 add_executable(protobuf::protoc IMPORTED)
 set_target_properties(protobuf::protoc PROPERTIES IMPORTED_LOCATION
 	"${binary_dir}/protoc")

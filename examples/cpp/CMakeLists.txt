@@ -4,6 +4,8 @@ endif()
 
 project(ortools_examples)
 
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib:$ORIGIN/")
+
 add_library(${PROJECT_NAME} SHARED
 	cvrptw_lib.cc
 	fap_model_printer.cc
@@ -14,8 +16,7 @@ add_library(${PROJECT_NAME} SHARED
 get_filename_component(PARENT_SOURCE_DIR ${PROJECT_SOURCE_DIR} DIRECTORY)
 get_filename_component(PARENT_SOURCE_DIR ${PARENT_SOURCE_DIR} DIRECTORY)
 target_include_directories(${PROJECT_NAME} PUBLIC ${PARENT_SOURCE_DIR})
-target_link_libraries(${PROJECT_NAME} ortools)
-add_dependencies(${PROJECT_NAME} ortools_proto)
+target_link_libraries(${PROJECT_NAME} PUBLIC ortools::ortools)
 
 include(GNUInstallDirs)
 install(TARGETS ${PROJECT_NAME}
@@ -63,9 +64,9 @@ foreach(EXECUTABLE
 		strawberry_fields_with_column_generation
 		tsp
 		weighted_tardiness_sat)
-	add_executable(${EXECUTABLE}_example ${EXECUTABLE}.cc)
-	target_link_libraries(${EXECUTABLE}_example ${PROJECT_NAME} ortools)
-	add_test(NAME ${EXECUTABLE}_example COMMAND ${EXECUTABLE}_example)
-	install(TARGETS ${EXECUTABLE}_example
+	add_executable(${EXECUTABLE} ${EXECUTABLE}.cc)
+	target_link_libraries(${EXECUTABLE} ${PROJECT_NAME})
+	add_test(NAME ${EXECUTABLE} COMMAND ${EXECUTABLE})
+	install(TARGETS ${EXECUTABLE}
 		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-ENDFOREACH()
+endforeach()
