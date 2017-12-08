@@ -50,6 +50,20 @@ set_target_properties(Protobuf PROPERTIES INTERFACE_LINK_LIBRARIES
 #add_library(Protobuf::Protobuf ALIAS Protobuf)
 add_dependencies(Protobuf Protobuf_project)
 
+# Install Rules
+include(GNUInstallDirs)
+install(FILES
+	$<TARGET_PROPERTY:Protobuf,IMPORTED_LOCATION>
+	$<TARGET_PROPERTY:Protobuf,INTERFACE_LINK_LIBRARIES>
+	DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY
+	$<TARGET_PROPERTY:Protobuf,INTERFACE_INCLUDE_DIRECTORIES>/
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	COMPONENT Devel
+	FILES_MATCHING
+	PATTERN "google/protobuf/*.h"
+	)
+
 # Export protoc executable to consume .proto file during build
 add_executable(protobuf::protoc IMPORTED)
 set_target_properties(protobuf::protoc PROPERTIES IMPORTED_LOCATION

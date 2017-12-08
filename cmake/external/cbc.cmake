@@ -38,6 +38,12 @@ foreach (COIN_PROJECT CoinUtils Osi Clp Cgl Cbc)
 	#add_library(coin::${COIN_PROJECT} ALIAS ${COIN_PROJECT})
 	add_dependencies(${COIN_PROJECT} ${COIN_PROJECT}_project)
 
+	# Install Rules
+	include(GNUInstallDirs)
+	install(FILES
+		$<TARGET_PROPERTY:${COIN_PROJECT},IMPORTED_LOCATION>
+		DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 	# Manage OsiCbc  CbcSolver OsiClp ClpSolver
 	if (${COIN_PROJECT} STREQUAL "Cbc" OR ${COIN_PROJECT} STREQUAL "Clp")
 		add_library(Osi${COIN_PROJECT} STATIC IMPORTED)
@@ -49,6 +55,12 @@ foreach (COIN_PROJECT CoinUtils Osi Clp Cgl Cbc)
 		#add_library(coin::Osi${COIN_PROJECT} ALIAS Osi${COIN_PROJECT})
 		add_dependencies(Osi${COIN_PROJECT} ${COIN_PROJECT}_project)
 
+		# Install Rules
+		include(GNUInstallDirs)
+		install(FILES
+			$<TARGET_PROPERTY:Osi${COIN_PROJECT},IMPORTED_LOCATION>
+			DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 		add_library(${COIN_PROJECT}Solver STATIC IMPORTED)
 		set_target_properties(${COIN_PROJECT}Solver PROPERTIES IMPORTED_LOCATION
 			${install_dir}/lib/lib${COIN_PROJECT}Solver.a)
@@ -57,6 +69,12 @@ foreach (COIN_PROJECT CoinUtils Osi Clp Cgl Cbc)
 		# Can't Alias imported target.
 		#add_library(coin::${COIN_PROJECT}Solver ALIAS ${COIN_PROJECT}Solver)
 		add_dependencies(${COIN_PROJECT}Solver ${COIN_PROJECT}_project)
+
+		# Install Rules
+		include(GNUInstallDirs)
+		install(FILES
+			$<TARGET_PROPERTY:${COIN_PROJECT}Solver,IMPORTED_LOCATION>
+			DESTINATION ${CMAKE_INSTALL_LIBDIR})
 	endif()
 endforeach()
 
@@ -77,3 +95,12 @@ add_dependencies(Osi_project CoinUtils_project)
 add_dependencies(Clp_project Osi_project)
 add_dependencies(Cgl_project Clp_project)
 add_dependencies(Cbc_project Cgl_project)
+
+# Install Rules
+include(GNUInstallDirs)
+install(DIRECTORY ${install_dir}/include/coin
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	COMPONENT Devel
+	FILES_MATCHING
+	PATTERN "*.hpp"
+	)

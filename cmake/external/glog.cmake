@@ -47,7 +47,21 @@ set_target_properties(glog PROPERTIES IMPORTED_LOCATION
 # cf https://gitlab.kitware.com/cmake/cmake/issues/15052
 file(MAKE_DIRECTORY ${source_dir}/src ${binary_dir})
 set_target_properties(glog PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-	"${source_dir}/src;${binary_dir}")
+	"${source_dir}/src/;${binary_dir}/")
 # Can't Alias imported target.
 #add_library(glog::glog ALIAS glog)
 add_dependencies(glog glog_project)
+
+# Install Rules
+include(GNUInstallDirs)
+install(FILES
+	$<TARGET_PROPERTY:glog,IMPORTED_LOCATION>
+	DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY
+	$<TARGET_PROPERTY:glog,INTERFACE_INCLUDE_DIRECTORIES>
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	COMPONENT Devel
+	FILES_MATCHING
+	PATTERN "*.h"
+	PATTERN "CMakeFiles" EXCLUDE
+	)

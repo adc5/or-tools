@@ -41,7 +41,21 @@ set_target_properties(gflags PROPERTIES IMPORTED_LOCATION
 # cf https://gitlab.kitware.com/cmake/cmake/issues/15052
 file(MAKE_DIRECTORY ${binary_dir}/include)
 set_target_properties(gflags PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-	${binary_dir}/include)
+	${binary_dir}/include/)
 # Can't Alias imported target.
 #add_library(gflags::gflags ALIAS gflags)
 add_dependencies(gflags gflags_project)
+
+# Install Rules
+include(GNUInstallDirs)
+install(FILES
+	$<TARGET_PROPERTY:gflags,IMPORTED_LOCATION>
+	DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY
+	$<TARGET_PROPERTY:gflags,INTERFACE_INCLUDE_DIRECTORIES>/
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+	COMPONENT Devel
+	FILES_MATCHING
+	PATTERN "*.h"
+	PATTERN "CMakeFiles" EXCLUDE
+	)
